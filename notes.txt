@@ -1,0 +1,4 @@
+- Move character by walk/run speed per tick until
+- Correct path finding
+- Character States (idle, walk, run, combat, etc)
+- First Impl of Animation
