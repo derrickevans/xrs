@@ -23,9 +23,12 @@ void xrs_init(void) {
     SetTargetFPS(60);
 
     player.pos = xrs_cell_to_pixel(1, 1);
+    player.sprite_pos = player.pos;
     player.sprite = LoadTexture("res/textures/ordinary_orvil.png");
     grass = LoadTexture("res/textures/grass_0001.png");
     dirt = LoadTexture("res/textures/dirt_0001.png");
+    player.state = IDLE;
+    player.true_tile_enabled = true;
 
     //camera.offset = (Vector2) {screen_width / 2, screen_height / 2};
     camera.offset = (Vector2) {0.0f, 0.0f};
@@ -57,14 +60,14 @@ bool is_walking = false;
 void xrs_tick_update(void) {
     timer += 1.0f;
 
-    if (is_walking) {
+    if (player.state == WALKING) {
         player_cell = xrs_pixel_to_cell(player.pos.x, player.pos.y);
         direction = Vector2Subtract(mouse_cell_clicked, player_cell);
 
         player_cell = Vector2Add(player_cell, direction);
         player.pos = xrs_cell_to_pixel(player_cell.x, player_cell.y);
 
-        is_walking = false;
+        player.state = IDLE;
     }
 }
 
@@ -74,8 +77,28 @@ void xrs_update(void) {
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         mouse_cell_clicked = xrs_pixel_to_cell(mouse_pos.x, mouse_pos.y);
-        is_walking = true;
+
+        player.state = WALKING;
     }
+
+    switch (player.state) {
+        case WALKING:
+            // Play walking animation
+            float x_amount = Lerp(player.sprite_pos.x, (float) (xrs_cell_to_pixel(mouse_cell_clicked.x, mouse_cell_clicked.y)).x, 0.05f);
+            float y_amount = Lerp(player.sprite_pos.y, (float) (xrs_cell_to_pixel(mouse_cell_clicked.x, mouse_cell_clicked.y)).y, 0.05f);
+            player.sprite_pos.x += x_amount * GetFrameTime();
+            player.sprite_pos.y += y_amount * GetFrameTime();
+        break;
+
+        case RUNNING:
+            // Play running animation
+        break;
+
+        case IDLE:
+        default:
+            // Play idle animation
+        break;
+    };
 }
 
 void xrs_draw_map(void) {
@@ -91,6 +114,18 @@ void xrs_draw_map(void) {
     }
 }
 
+#define XRS_RENDER_DEBUG 0
+void xrs_render_debug(void) {
+    DrawText(TextFormat("Tick Time %.2f", timer), 10, 10, 20, BLACK);
+    DrawText(TextFormat("Mouse (%.2f, %.2f)", mouse_pos.x, mouse_pos.y), 100, 100, 20, YELLOW);
+    //DrawText(TextFormat("Cell  (%d, %d)", (int) cell.x, (int) cell.y), 100, 125, 20, GOLD);
+    DrawText(TextFormat("World (%.2f, %.2f)", mouse_world.x, mouse_world.y), 100, 150, 20, ORANGE);
+    Vector2 p = xrs_pixel_to_cell(player.pos.x, player.pos.y);
+    DrawText(TextFormat("Player(%.2f, %.2f)", p.x, p.y), 100, 175, 20, PINK);
+    DrawText(TextFormat("Cell Clicked (%.2f, %.2f)", mouse_cell_clicked.x, mouse_cell_clicked.y), 100, 200, 20, RED);
+    DrawText(TextFormat("Direciton (%.2f, %.2f)", direction.x, direction.y), 100, 225, 20, MAROON);
+}
+
 void xrs_render(void) {
     BeginDrawing();
         ClearBackground(BLACK);
@@ -100,18 +135,13 @@ void xrs_render(void) {
             Vector2 pixel = xrs_cell_to_pixel(cell.x, cell.y);
 
             xrs_draw_map();
-            DrawTextureV(player.sprite, player.pos, WHITE);
+            xrs_render_character(&player);
 
-            DrawText(TextFormat("Tick Time %.2f", timer), 10, 10, 20, BLACK);
-            DrawText(TextFormat("Mouse (%.2f, %.2f)", mouse_pos.x, mouse_pos.y), 100, 100, 20, YELLOW);
-            DrawText(TextFormat("Cell  (%d, %d)", (int) cell.x, (int) cell.y), 100, 125, 20, GOLD);
-            DrawText(TextFormat("World (%.2f, %.2f)", mouse_world.x, mouse_world.y), 100, 150, 20, ORANGE);
-            Vector2 p = xrs_pixel_to_cell(player.pos.x, player.pos.y);
-            DrawText(TextFormat("Player(%.2f, %.2f)", p.x, p.y), 100, 175, 20, PINK);
-            DrawText(TextFormat("Cell Clicked (%.2f, %.2f)", mouse_cell_clicked.x, mouse_cell_clicked.y), 100, 200, 20, RED);
-            DrawText(TextFormat("Direciton (%.2f, %.2f)", direction.x, direction.y), 100, 225, 20, MAROON);
+#if XRS_RENDER_DEBUG
+            xrs_render_debug();
+#endif
 
-            DrawRectangleLines(pixel.x, pixel.y, CELL_WIDTH, CELL_HEIGHT, PURPLE);
+            DrawRectangleLines(pixel.x, pixel.y, CELL_WIDTH, CELL_HEIGHT, MAGENTA);
         EndMode2D();
 
     EndDrawing();

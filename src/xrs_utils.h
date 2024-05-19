@@ -6,4 +6,6 @@
 #define CELL_WIDTH 32
 #define CELL_HEIGHT 32
 
+#define XRS_CYAN (Color) {0, 255, 255, 255}
+
 #endif // XRS_UTILS_H
